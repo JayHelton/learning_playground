@@ -2,6 +2,7 @@ import caeser_cipher
 import one_time_pad
 import stream_cipher
 import key_exchange
+import rsa
 
 
 def main():
@@ -13,6 +14,8 @@ def main():
     stream_cipher.run_test()
     print("DH Key Exchange")
     key_exchange.run_test()
+    print("RSA")
+    rsa.run_test()
 
 
 if __name__ == "__main__":
