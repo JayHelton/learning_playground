@@ -6,5 +6,7 @@ int main() {
    testVariableLengthArrays();
    printf("Test Flexible Array Members\n");
    testFlexibleArrayMembers();
+   printf("Test Manual Binary Conversions\n");
+   testBinaryConverstions();
    return 0;
 }

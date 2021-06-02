@@ -3,5 +3,6 @@
 
 void testVariableLengthArrays();
 void testFlexibleArrayMembers();
+void testBinaryConverstions();
 
 #endif
