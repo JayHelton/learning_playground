@@ -7,6 +7,7 @@ def generate_key(n):
         cnt += 1
     return key
 
+
 def encrypt(key, message):
     cipher = ""
     for c in message:
@@ -16,11 +17,13 @@ def encrypt(key, message):
             cipher += c
     return cipher
 
+
 def generate_decrypt_key(key):
     dkey = {}
     for c in key:
         dkey[key[c]] = c
-    return dkey;
+    return dkey
+
 
 def run_test():
     key = generate_key(3)
@@ -28,5 +31,5 @@ def run_test():
     cipher = encrypt(key, message)
     dkey = generate_decrypt_key(key)
     decrypted = encrypt(dkey, cipher)
-    assert(message == decrypted)
+    assert message == decrypted
     print(message, "->", cipher, "->", decrypted)
