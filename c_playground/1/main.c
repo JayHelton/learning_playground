@@ -8,5 +8,6 @@ int main() {
    testFlexibleArrayMembers();
    printf("Test Manual Binary Conversions\n");
    testBinaryConverstions();
+   testBitwise();
    return 0;
 }
