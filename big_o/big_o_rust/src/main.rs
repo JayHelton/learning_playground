@@ -1,5 +1,5 @@
 mod lib;
 
 fn main() {
-    println!("{:?}", lib::add(3, 4));
+    lib::array::run_tests();
 }

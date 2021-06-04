@@ -4,5 +4,6 @@ void testBitwise();
 void testVariableLengthArrays();
 void testFlexibleArrayMembers();
 void testBinaryConverstions();
+void testLinkedList();
 
 #endif
