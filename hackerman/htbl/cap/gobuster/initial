@@ -1,0 +1,4 @@
+/data                 (Status: 302) [Size: 208] [--> http://10.10.10.245/]
+/ip                   (Status: 200) [Size: 17461]
+/netstat              (Status: 200) [Size: 45811]
+/capture              (Status: 302) [Size: 220] [--> http://10.10.10.245/data/5]
