@@ -1,0 +1,21 @@
+- Nikto v2.1.6
+---------------------------------------------------------------------------
++ Target IP:          10.10.10.241
++ Target Hostname:    pit.htb
++ Target Port:        9090
+---------------------------------------------------------------------------
++ SSL Info:        Subject:  /C=US/O=4cd9329523184b0ea52ba0d20a1a6f92/CN=dms-pit.htb
+                   Ciphers:  TLS_AES_256_GCM_SHA384
+                   Issuer:   /C=US/O=4cd9329523184b0ea52ba0d20a1a6f92/OU=ca-5763051739999573755/CN=dms-pit.htb
++ Start Time:         2021-08-08 18:26:01 (GMT-5)
+---------------------------------------------------------------------------
++ Server: No banner retrieved
++ The anti-clickjacking X-Frame-Options header is not present.
++ The X-XSS-Protection header is not defined. This header can hint to the user agent to protect against some forms of XSS
++ Uncommon header 'cross-origin-resource-policy' found, with contents: same-origin
++ Uncommon header 'x-dns-prefetch-control' found, with contents: off
++ The site uses SSL and the Strict-Transport-Security HTTP header is not defined.
++ The site uses SSL and Expect-CT header is not present.
++ No CGI Directories found (use '-C all' to force check all possible dirs)
++ Hostname 'pit.htb' does not match certificate's names: dms-pit.htb
++ Retrieved access-control-allow-origin header: https://pit.htb:9090

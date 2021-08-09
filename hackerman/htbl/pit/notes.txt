@@ -1,0 +1,83 @@
+default niginx install
+9090 has cockpit, noticed ssl cert for dms-pit.htb
+its forbidden.
+scanned udp
+ran snmpbulkwalk -On -r1 -v2c -c public 10.10.10.241
+
+user named michelle found
+
+              total        used        free      shared  buff/cache   available
+Mem:          3.8Gi       321Mi       3.2Gi       8.0Mi       303Mi       3.3Gi
+Swap:         1.9Gi          0B       1.9Gi
+Database status
+OK - Connection to database successful.
+System release info
+CentOS Linux release 8.3.2011
+SELinux Settings
+user
+
+                Labeling   MLS/       MLS/                          
+SELinux User    Prefix     MCS Level  MCS Range                      SELinux Roles
+
+guest_u         user       s0         s0                             guest_r
+root            user       s0         s0-s0:c0.c1023                 staff_r sysadm_r system_r unconfined_r
+staff_u         user       s0         s0-s0:c0.c1023                 staff_r sysadm_r unconfined_r
+sysadm_u        user       s0         s0-s0:c0.c1023                 sysadm_r
+system_u        user       s0         s0-s0:c0.c1023                 system_r unconfined_r
+unconfined_u    user       s0         s0-s0:c0.c1023                 system_r unconfined_r
+user_u          user       s0         s0                             user_r
+xguest_u        user       s0         s0                             xguest_r
+login
+
+Login Name           SELinux User         MLS/MCS Range        Service
+
+__default__          unconfined_u         s0-s0:c0.c1023       *
+michelle             user_u               s0                   *
+root                 unconfined_u         s0-s0:c0.c1023       *
+System uptime
+
+
+this is intersting 
+.1.3.6.1.4.1.2021.9.1.2.2 = STRING: "/var/www/html/seeddms51x/seeddms"
+
+
+
+login was michelle michelle
+https://www.exploit-db.com/exploits/50062
+
+
+<database dbDriver="mysql" dbHostname="localhost" dbDatabase="seeddms" dbUser="seeddms" dbPass="ied^ieY6xoquu" doNotCheckVersion="false">
+
+
+got logged into cockpit
+
+thought michelle as username again was too obvious, but it ended up being michelle and a reused password from the database above
+
+go to terminal, user flag was right there 34d7c938a1990098d0f2034464de819a
+
+
+escalation was rough, had to research
+
+snmp has a file called monitoring, it runs scripts
+
+cat: /usr/bin/monitoring/: No such file or directory
+[michelle@pit ~]$ cat /usr/bin/monitor 
+#!/bin/bash
+
+for script in /usr/local/monitoring/check*sh
+do
+    /bin/bash $script
+done
+
+curled custom script to inject pubkey
+
+
+could not get it to run, found help
+snmpwalk -m +MY-MIB -v2c -c public 10.10.10.241 nsExtendObjects
+sudo download-mibs
+
+
+finally that worked, curled file as check.sh, ran snmp, got ssh key added
+
+https://medium.com/rangeforce/snmp-arbitrary-command-execution-19a6088c888e
+0c61af4ff9d807bfbfb34229b88dade5
