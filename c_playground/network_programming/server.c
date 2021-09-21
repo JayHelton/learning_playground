@@ -5,6 +5,7 @@
 #include <netdb.h>
 #include <unistd.h>
 #include <errno.h>
+#include <stdlib.h>
 
 
 #define ISVALIDSOCKET(s) ((s) >= 0)
@@ -94,63 +95,72 @@ int main() {
          * 
          * Once connected, get address info from the client
          */
-        printf("Client is connected... ");
-
         char address_buffer[100];
         getnameinfo((struct sockaddr*)&client_address,
                 client_len, address_buffer, sizeof(address_buffer), 0, 0,
                 NI_NUMERICHOST);
 
-        printf("%s\n", address_buffer);
-
+        printf("New connection from %s\n", address_buffer);
+        
         /**
-         * Reading the bytes from the request
+         * Fork allows a process to split off to a new new process per connection
          */
-        printf("Reading request...\n");
-        char request[1024];
-        int bytes_received = recv(socket_client, request, 1024, 0);
-        printf("Received %d bytes.\n", bytes_received);
+        int pid = fork();
 
-        /**
-         * This is a dumb server, so just return the response
-         *
-         * Format the response bytes in HTTP format
-         */
-        printf("Sending response...\n");
-        const char *response =
-            "HTTP/1.1 200 OK\r\n"
-            "Connection: close\r\n"
-            "Content-Type: text/plain\r\n\r\n"
-            "Local time is: ";
+        if (pid == 0) {
+            printf("Child Process Forked...\n");
+            CLOSESOCKET(socket_listen);
+            /**
+             * Reading the bytes from the request
+             */
+            printf("Reading request...\n");
+            char request[1024];
+            int bytes_received = recv(socket_client, request, 1024, 0);
+            printf("Received %d bytes.\n", bytes_received);
 
-        /**
-         * Send the initial bytes to the client
-         */
-        int bytes_sent = send(socket_client, response, strlen(response), 0);
-        printf("Sent %d of %d bytes.\n", bytes_sent, (int)strlen(response));
+            /**
+             * This is a dumb server, so just return the response
+             *
+             * Format the response bytes in HTTP format
+             */
+            printf("Sending response...\n");
+            const char *response =
+                "HTTP/1.1 200 OK\r\n"
+                "Connection: close\r\n"
+                "Content-Type: text/plain\r\n\r\n"
+                "Local time is: ";
 
-        /**
-         * Create the data for the timestamp
-         *
-         * The server can continue to send data while the socket is open.
-         * The client will consider everything as part of the http request
-         * until the socket conneciton is closed by the server or it timesout
-         */
-        time_t timer;
-        time(&timer);
+            /**
+             * Send the initial bytes to the client
+             */
+            int bytes_sent = send(socket_client, response, strlen(response), 0);
+            printf("Sent %d of %d bytes.\n", bytes_sent, (int)strlen(response));
 
-        char *time_msg = ctime(&timer);
+            /**
+             * Create the data for the timestamp
+             *
+             * The server can continue to send data while the socket is open.
+             * The client will consider everything as part of the http request
+             * until the socket conneciton is closed by the server or it timesout
+             */
+            time_t timer;
+            time(&timer);
 
-        bytes_sent = send(socket_client, time_msg, strlen(time_msg), 0);
-        printf("Sent %d of %d bytes.\n", bytes_sent, (int)strlen(time_msg));
+            char *time_msg = ctime(&timer);
+
+            bytes_sent = send(socket_client, time_msg, strlen(time_msg), 0);
+            printf("Sent %d of %d bytes.\n", bytes_sent, (int)strlen(time_msg));
 
 
-        printf("Closing connection...\n");
+            printf("Closing connection in child process...\n");
+            CLOSESOCKET(socket_client);
+            exit(0);
+        }
+        printf("Closing connection in parent process...\n");
         CLOSESOCKET(socket_client);
-
     }
 
-    printf("Closing listening socket...\n");
+    printf("Closing main socket...\n");
     CLOSESOCKET(socket_listen);
 
     printf("Finished.\n");
