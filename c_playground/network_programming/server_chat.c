@@ -66,6 +66,11 @@ int main() {
         for(i = 1; i <= max_socket; ++i) {
             if (FD_ISSET(i, &reads)) {
                 if (i == socket_listen) {
+                    /**
+                     * If it was the inital socket being set,
+                     * this means we have a new connections. We accept that connection which returns a new
+                     * fd. We add that fd to our non-copied fd set to add it to our loop.
+                     */
                     struct sockaddr_storage client_address;
                     socklen_t client_len = sizeof(client_address);
                     SOCKET socket_client = accept(socket_listen,
@@ -88,6 +93,11 @@ int main() {
                             NI_NUMERICHOST);
 
                 } else {
+                    /**
+                     * If it wasnt the initial socket, that means it was a socket
+                     * that was creating from a client connection. 
+                     * We expect to received data from that socket
+                     */
                     char read[1024];
                     int bytes_received = recv(i, read, 1024, 0);
                     if (bytes_received < 1) {
