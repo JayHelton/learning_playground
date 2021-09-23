@@ -13,6 +13,18 @@
 #define SOCKET int
 #define GETSOCKETERRNO() (errno)
 
+/** 
+ * Cool usage:
+ * tcp_client www.google.com 80
+ *
+ * enter:
+ * GET / HTTP/1.1
+ * Host: www.google.com
+ * <emtpy line to finish>
+ *
+ * This works because HTTP is built on top of TCP. Its just a format spec.
+ * By manually sending data that conforms to http spec, you can receive responses from HTTP servers
+ */
 int main(int argc, char *argv[]) {
     if (argc < 3) {
         fprintf(stderr, "usage: tcp_client hostname port\n");
@@ -63,7 +75,8 @@ int main(int argc, char *argv[]) {
 
         /**
          * Create a list of file descriptors we want to keep checking/
-         * This includes the socket and stdin (0 is stdin)
+         * This includes the socket and stdin (0 is stdin).
+         * We create new every loop because select mutates data
          */
         fd_set reads;
         memset(&reads, 0, sizeof(reads));
@@ -76,6 +89,7 @@ int main(int argc, char *argv[]) {
 
         /**
          * use select to wait and see if any of the file descriptors are ready to be read
+         * ive read poll or epoll is actually better
          */
         if (select(socket_peer+1, &reads, 0, 0, &timeout) < 0) {
             fprintf(stderr, "select() failed. (%d)\n", GETSOCKETERRNO());

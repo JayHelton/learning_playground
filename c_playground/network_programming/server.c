@@ -7,21 +7,16 @@
 #include <errno.h>
 #include <stdlib.h>
 
-
 #define ISVALIDSOCKET(s) ((s) >= 0)
 #define CLOSESOCKET(s) close(s)
 #define SOCKET int
 #define GETSOCKETERRNO() (errno)
 
-
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
 
-
 int main() {
-    printf("Configuring local address...\n");
-
     struct addrinfo hints;
     memset(&hints, 0, sizeof(hints));
 
@@ -31,9 +26,6 @@ int main() {
 
     struct addrinfo *bind_address;
     getaddrinfo(0, "8080", &hints, &bind_address);
-
-
-    printf("Creating socket...\n");
 
     /**
      * Create a socket listener using the info from getadrinfo
@@ -51,7 +43,6 @@ int main() {
     /**
      * Bind to an address and IPV4
      */
-    printf("Binding socket to local address...\n");
     if (bind(socket_listen,
                 bind_address->ai_addr, bind_address->ai_addrlen)) {
         fprintf(stderr, "bind() failed. (%d)\n", GETSOCKETERRNO());
@@ -63,8 +54,6 @@ int main() {
      */
     freeaddrinfo(bind_address);
 
-
-    printf("Listening...\n");
     if (listen(socket_listen, 10) < 0) {
         fprintf(stderr, "listen() failed. (%d)\n", GETSOCKETERRNO());
         return 1;
@@ -75,8 +64,6 @@ int main() {
      * keeps accepting new connections
      */
     while(1) {
-        printf("Waiting for connection...\n");
-
         /**
          * Start accepting connections that come through
          */
@@ -100,30 +87,24 @@ int main() {
                 client_len, address_buffer, sizeof(address_buffer), 0, 0,
                 NI_NUMERICHOST);
 
-        printf("New connection from %s\n", address_buffer);
-        
         /**
          * Fork allows a process to split off to a new new process per connection
          */
         int pid = fork();
 
         if (pid == 0) {
-            printf("Child Process Forked...\n");
             CLOSESOCKET(socket_listen);
             /**
              * Reading the bytes from the request
              */
-            printf("Reading request...\n");
             char request[1024];
             int bytes_received = recv(socket_client, request, 1024, 0);
-            printf("Received %d bytes.\n", bytes_received);
 
             /**
              * This is a dumb server, so just return the response
              *
              * Format the response bytes in HTTP format
              */
-            printf("Sending response...\n");
             const char *response =
                 "HTTP/1.1 200 OK\r\n"
                 "Connection: close\r\n"
@@ -147,23 +128,15 @@ int main() {
             time(&timer);
 
             char *time_msg = ctime(&timer);
+            send(socket_client, time_msg, strlen(time_msg), 0);
 
-            bytes_sent = send(socket_client, time_msg, strlen(time_msg), 0);
-            printf("Sent %d of %d bytes.\n", bytes_sent, (int)strlen(time_msg));
-
-
-            printf("Closing connection in child process...\n");
             CLOSESOCKET(socket_client);
             exit(0);
         }
-        printf("Closing connection in parent process...\n");
         CLOSESOCKET(socket_client);
     }
 
-    printf("Closing main socket...\n");
     CLOSESOCKET(socket_listen);
-
-    printf("Finished.\n");
 
     return 0;
 }
