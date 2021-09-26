@@ -106,10 +106,18 @@ int main() {
                         continue;
                     }
 
-                    int j;
-                    for (j = 0; j < bytes_received; ++j)
-                        read[j] = toupper(read[j]);
-                    send(i, read, bytes_received, 0);
+                    SOCKET j;
+                    for (j = 1; j <= max_socket; ++j) {
+                        if (FD_ISSET(j, &master)) {
+                            if (j == socket_listen || j == i)
+                                continue;
+                            else
+                                // Ideally, we should check the return value, which is the 
+                                // return value of send and keep track of what we sent compared to
+                                // the buffer lengt
+                                send(j, read, bytes_received, 0);
+                        }
+                    }
                 }
             }
         }
