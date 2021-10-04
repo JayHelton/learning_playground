@@ -1,5 +1,5 @@
 use axum::{AddExtensionLayer, Router, body::Body, extract::Extension, handler::get, http::Response, response::{IntoResponse, Json}};
-use std::{task::Poll, time::Instant};
+use std::{future::Future, pin::Pin, task::Poll, time::Instant};
 use std::{
     net::SocketAddr,
     sync::{Arc, Mutex},
@@ -14,6 +14,21 @@ struct State {
 }
 
 type AppState = Arc<Mutex<State>>;
+
+struct ResponseFuture<F> {
+    future: F,
+}
+
+impl <F, Response, Error> Future for ResponseFuture<F>
+where
+    F: Future<Output = Result<Response, Error>>,
+{
+    type Output = Result<Response, Error>;
+
+    fn poll(self: Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> Poll<Self::Output> {
+        Poll::Pending
+    }
+}
 
 #[derive(Debug, Clone)]
 struct CpuAvailability<T> {
@@ -33,7 +48,7 @@ where
 {
     type Response = S::Response;
     type Error = S::Error;
-    type Future = S::Future;
+    type Future = ResponseFuture<S::Future>;
 
     fn poll_ready(
         &mut self,
@@ -42,17 +57,9 @@ where
         self.inner.poll_ready(cx)
     }
 
-    // this doesnt work. I need to return a future impl
     fn call(&mut self, req: Request) -> Self::Future {
-        println!(
-            "Checking CpuAvailability - {}",
-            self.state.lock().unwrap().counter
-        );
-        if is_available(self.state.clone()) {
-            self.inner.call(req)
-        } else {
-            let body = Response::builder().status(429);
-            async { body }
+        ResponseFuture {
+            future: self.inner.call(req)
         }
     }
 }
