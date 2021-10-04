@@ -17,7 +17,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     runtime.block_on(async {
         let app_state = Arc::new(Mutex::new(State {
-            counter: num_cpus::get() - 1,
+            counter: num_cpus::get(),
         }));
 
         let addr = "127.0.0.1:8080".to_string();
