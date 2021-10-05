@@ -1,5 +1,12 @@
-use axum::{AddExtensionLayer, Router, body::Body, extract::Extension, handler::get, http::Response, response::{IntoResponse, Json}};
-use std::{future::Future, pin::Pin, task::Poll, time::Instant};
+use axum::{
+    extract::Extension,
+    handler::get,
+    http::StatusCode,
+    response::{IntoResponse, Json},
+    AddExtensionLayer, Router,
+};
+use pin_project::pin_project;
+use std::{borrow::Cow, convert::Infallible, future::Future, pin::Pin, task::Poll, time::Instant};
 use std::{
     net::SocketAddr,
     sync::{Arc, Mutex},
@@ -14,22 +21,63 @@ struct State {
 }
 
 type AppState = Arc<Mutex<State>>;
+type BoxError = Box<dyn std::error::Error + Send + Sync>;
 
-struct ResponseFuture<F> {
-    future: F,
+/**
+ * We define a new error for rejections.
+ * We implement std::error::Error so that we can convert
+ * the error back down to a general error.
+ */
+#[derive(Debug, Default)]
+struct CoresUnavailable(());
+
+impl std::fmt::Display for CoresUnavailable {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.pad("No cores available")
+    }
 }
 
-impl <F, Response, Error> Future for ResponseFuture<F>
+impl std::error::Error for CoresUnavailable {}
+
+/**
+ * For complex middleware, we can define our own futures.
+ * We probably could also just return a Box dyn in the Service impl
+ */
+#[pin_project]
+struct ResponseFuture<F> {
+    #[pin]
+    future: F,
+    cores_available: bool,
+}
+
+impl<F, Response, Error> Future for ResponseFuture<F>
 where
     F: Future<Output = Result<Response, Error>>,
+    Error: Into<BoxError>,
 {
-    type Output = Result<Response, Error>;
+    type Output = Result<Response, BoxError>;
 
     fn poll(self: Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> Poll<Self::Output> {
+        if !self.cores_available {
+            let err = Box::new(CoresUnavailable(()));
+            return Poll::Ready(Err(err));
+        }
+        let this = self.project();
+        match this.future.poll(cx) {
+            Poll::Ready(result) => {
+                let result = result.map_err(Into::into);
+                return Poll::Ready(result);
+            }
+            Poll::Pending => {}
+        }
         Poll::Pending
     }
 }
 
+/**
+ * CPU availability middleware. It will call the inner service if there are workers available,
+ * else it will throw an error
+ */
 #[derive(Debug, Clone)]
 struct CpuAvailability<T> {
     state: AppState,
@@ -45,25 +93,34 @@ impl<S> CpuAvailability<S> {
 impl<S, Request> Service<Request> for CpuAvailability<S>
 where
     S: Service<Request>,
+    S::Error: Into<BoxError>,
 {
     type Response = S::Response;
-    type Error = S::Error;
+    type Error = BoxError;
     type Future = ResponseFuture<S::Future>;
 
     fn poll_ready(
         &mut self,
         cx: &mut std::task::Context<'_>,
     ) -> std::task::Poll<Result<(), Self::Error>> {
-        self.inner.poll_ready(cx)
+        self.inner.poll_ready(cx).map_err(Into::into)
     }
 
     fn call(&mut self, req: Request) -> Self::Future {
+        println!(
+            "Checking CPUs: {} available",
+            available_cores(self.state.clone())
+        );
         ResponseFuture {
-            future: self.inner.call(req)
+            cores_available: is_available(self.state.clone()),
+            future: self.inner.call(req),
         }
     }
 }
 
+/**
+ * Middleware Layer for the service decoration to make it a reusable component
+ */
 #[derive(Debug, Clone)]
 struct CpuAvailabilityLayer {
     state: AppState,
@@ -91,9 +148,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let app = Router::new()
         .route("/blocking", get(blocking_handler))
-        .route("/nonblocking", get(nonblocking_handler))
         .layer(CpuAvailabilityLayer::new(state.clone()))
-        .layer(AddExtensionLayer::new(state));
+        .layer(AddExtensionLayer::new(state))
+        .handle_error(|error: BoxError| {
+            if error.is::<CoresUnavailable>() {
+                return Ok::<_, Infallible>((
+                    StatusCode::TOO_MANY_REQUESTS,
+                    Cow::from(format!("All cores are busy. Try again later.")),
+                ));
+            }
+
+            Ok::<_, Infallible>((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Cow::from(format!("Unhandled internal error: {}", error)),
+            ))
+        });
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
 
@@ -106,11 +175,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-async fn nonblocking_handler(Extension(state): Extension<AppState>) -> impl IntoResponse {
-    Json(state.lock().unwrap().counter)
-}
-
 async fn blocking_handler(Extension(state): Extension<AppState>) -> impl IntoResponse {
+    println!("Starting Work");
     decrement(state.clone());
     let start = Instant::now();
     loop {
@@ -120,6 +186,7 @@ async fn blocking_handler(Extension(state): Extension<AppState>) -> impl IntoRes
         }
     }
     increment(state);
+    println!("Work Done");
     Json("Work Done")
 }
 
