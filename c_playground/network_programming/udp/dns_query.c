@@ -263,7 +263,7 @@ int main(int argc, char *argv[]) {
     /**
      * Google DNS
      */
-    if (getaddrinfo("8.8.8.8", "53", &hints, &peer_address)) {
+    if (getaddrinfo("127.0.0.1", "3000", &hints, &peer_address)) {
         fprintf(stderr, "getaddrinfo() failed. (%d)\n", GETSOCKETERRNO());
         return 1;
     }
