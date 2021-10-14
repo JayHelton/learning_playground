@@ -1,0 +1,24 @@
+{
+ "configurations": {
+   "attach": {
+      "adapter": "vscode-node",
+      "configuration": {
+        "name": "Attach to Process",
+        "type": "node",
+        "request": "attach",
+        "port": 9229
+      }
+   },
+    "run": {
+      "adapter": "vscode-node",
+      "configuration": {
+        "request": "launch",
+        "protocol": "auto",
+        "stopOnEntry": true,
+        "console": "integratedTerminal",
+        "program": "${workspaceRoot}/index.js",
+        "cwd": "${workspaceRoot}"
+      }
+    }
+  }
+} 

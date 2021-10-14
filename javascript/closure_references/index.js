@@ -2,11 +2,11 @@
 function buildMain(dep) {
 	// here we add a dep and return a function that will hold that reference using lexical scoping
 	return function () {
-		console.log({dep});
 	}
 }
 
 let dep = {name: 'test', thing: {test: 'thing'}};
+while (true) {
 
 // pass in the dep
 const main = buildMain(dep);
@@ -34,3 +34,4 @@ dep = {name: 'not test'};
 // the original allocated data is still referenced in our main function and GC will not clean it up
 // if you build and forget a lot of functions via closures, you can end up with a huge memory leak
 main();
+}
