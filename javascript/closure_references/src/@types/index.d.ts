@@ -1,0 +1,3 @@
+interface Poop {
+  poop: string
+}
